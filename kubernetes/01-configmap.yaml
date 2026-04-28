@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: greendev-config
+data:
+  WELCOME_MESSAGE: "Hola des del Backend a Kubernetes! (Nivell Expert)"
+  BACKEND_PORT: "8080"
