@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dev
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: prod
+  labels:
+    name: prod # Necessari per identificar el namespace a la política de seguretat
+---
+# LA BASE DE DADES (L'Objectiu a protegir)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: prod-db
+  namespace: prod
+  labels:
+    app: database
+spec:
+  containers:
+  - name: web
+    image: nginx:alpine # Simulem una DB que escolta peticions web
+---
+# EL TREBALLADOR LEGÍTIM (Dins de Producció)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: prod-worker
+  namespace: prod
+spec:
+  containers:
+  - name: terminal
+    image: curlimages/curl
+    command: ["sleep", "3600"]
+---
+# L'ATACANT / DESENVOLUPADOR (Dins de Dev)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dev-hacker
+  namespace: dev
+spec:
+  containers:
+  - name: terminal
+    image: curlimages/curl
+    command: ["sleep", "3600"]

@@ -1,0 +1,14 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: isolate-production
+  namespace: prod
+spec:
+  podSelector: {} # En buit vol dir: Aplica a TOTS els pods d'aquest namespace
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: prod # Nomes deixa passar si qui truca ve del namespace amb l'etiqueta 'prod'
