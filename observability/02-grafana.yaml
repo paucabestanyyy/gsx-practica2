@@ -1,0 +1,173 @@
+###############################################################################
+# Grafana - Dashboards
+# Week 13 Challenge A
+###############################################################################
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: monitoring
+data:
+  datasource.yml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus:9090
+        isDefault: true
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards-providers
+  namespace: monitoring
+data:
+  providers.yml: |
+    apiVersion: 1
+    providers:
+      - name: 'GreenDevCorp'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-greendev
+  namespace: monitoring
+data:
+  greendev-overview.json: |
+    {
+      "title": "GreenDevCorp - Overview",
+      "uid": "greendev-overview",
+      "tags": ["greendev"],
+      "timezone": "browser",
+      "schemaVersion": 38,
+      "refresh": "10s",
+      "time": { "from": "now-1h", "to": "now" },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Pods running per namespace",
+          "type": "stat",
+          "gridPos": {"x": 0, "y": 0, "w": 8, "h": 6},
+          "targets": [{
+            "expr": "count(kube_pod_info{namespace=~\"greendev.*\"}) by (namespace)",
+            "legendFormat": "{{namespace}}"
+          }]
+        },
+        {
+          "id": 2,
+          "title": "CPU usage per pod",
+          "type": "timeseries",
+          "gridPos": {"x": 8, "y": 0, "w": 16, "h": 8},
+          "targets": [{
+            "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=~\"greendev.*\"}[5m])) by (pod)",
+            "legendFormat": "{{pod}}"
+          }]
+        },
+        {
+          "id": 3,
+          "title": "Memory usage per pod",
+          "type": "timeseries",
+          "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+          "targets": [{
+            "expr": "sum(container_memory_usage_bytes{namespace=~\"greendev.*\"}) by (pod)",
+            "legendFormat": "{{pod}}"
+          }]
+        },
+        {
+          "id": 4,
+          "title": "HTTP requests/s",
+          "type": "timeseries",
+          "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+          "targets": [{
+            "expr": "sum(rate(http_requests_total[1m])) by (status)",
+            "legendFormat": "HTTP {{status}}"
+          }]
+        }
+      ]
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+      - name: grafana
+        image: grafana/grafana:10.4.0
+        ports:
+        - containerPort: 3000
+        env:
+        - name: GF_SECURITY_ADMIN_USER
+          value: admin
+        - name: GF_SECURITY_ADMIN_PASSWORD
+          value: changeme  # NOTA: en prod, usar Secret
+        - name: GF_USERS_ALLOW_SIGN_UP
+          value: "false"
+        volumeMounts:
+        - name: datasources
+          mountPath: /etc/grafana/provisioning/datasources
+        - name: dashboard-providers
+          mountPath: /etc/grafana/provisioning/dashboards
+        - name: dashboards
+          mountPath: /var/lib/grafana/dashboards
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "300m"
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+      volumes:
+      - name: datasources
+        configMap:
+          name: grafana-datasources
+      - name: dashboard-providers
+        configMap:
+          name: grafana-dashboards-providers
+      - name: dashboards
+        configMap:
+          name: grafana-dashboard-greendev
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  type: NodePort
+  ports:
+  - port: 3000
+    targetPort: 3000
+    nodePort: 30030
+  selector:
+    app: grafana

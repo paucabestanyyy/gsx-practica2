@@ -1,23 +1,40 @@
-# 1. Base ultra-lleugera (Compleix el requisit de l'apartat 4.2)
-FROM python:3.9-alpine
+###############################################################################
+# Python App Dockerfile - GreenDevCorp W8 (Advanced ***)
+# - Multistage: build amb dependencies + runtime minim
+# - Base: python:3.12-alpine (lleugera, ~50MB)
+# - Non-root user (UID 1000)
+# - Read-only filesystem compatible
+# - HEALTHCHECK integrat
+###############################################################################
 
-# 2. Creem un usuari sense privilegis per seguretat (Compleix apartat 4.3)
-RUN adduser -D -u 1000 appuser
+# ---------- STAGE 1: Builder (per si calen dependencies amb pip) ----------
+FROM python:3.12-alpine AS builder
+WORKDIR /build
+COPY app.py ./
+# Si en algun moment afegim un requirements.txt:
+#   COPY requirements.txt ./
+#   RUN pip install --user --no-cache-dir -r requirements.txt
 
-# 3. Definim on treballarem dins del contenidor
+# ---------- STAGE 2: Runtime ----------
+FROM python:3.12-alpine
+
+LABEL org.opencontainers.image.title="python-app-gsx" \
+      org.opencontainers.image.description="GreenDevCorp simple Python HTTP server (W8)" \
+      org.opencontainers.image.authors="paucabestany"
+
+# Usuari sense privilegis
+RUN adduser -D -u 1000 -h /home/appuser appuser
+
 WORKDIR /app
-
-# 4. Copiem el nostre codi cap a dins del contenidor
-COPY app.py .
-
-# 5. Donem permisos només a l'usuari segur perquè ningú més pugui tocar el fitxer
+COPY --from=builder /build/app.py ./
 RUN chown -R appuser:appuser /app
 
-# 6. A partir d'aquí, canviem la identitat (ja NO som root)
 USER appuser
 
-# 7. Obrim el port 8080 cap a l'exterior
 EXPOSE 8080
 
-# 8. Comanda final per engegar el servidor
-CMD ["python", "app.py"]
+# Healthcheck (necessita un endpoint /health a l'app)
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://localhost:8080/ || exit 1
+
+CMD ["python", "-u", "app.py"]

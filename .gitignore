@@ -1,0 +1,44 @@
+# Secrets
+.env
+*.env
+*.pem
+*.key
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars.local
+crash.log
+.terraform.lock.hcl
+
+# Build artifacts
+__pycache__/
+*.pyc
+node_modules/
+dist/
+build/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+*.tar
+*.tar.gz
+
+# Logs
+*.log
+
+# Backups
+*.bak
+*.rdb
+
+# Scripts d'instal.lacio que no han d'anar al repo
+get-docker.sh

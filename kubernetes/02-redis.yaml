@@ -3,8 +3,10 @@ kind: Service
 metadata:
   name: redis
 spec:
+  clusterIP: None  # Headless service per StatefulSet
   ports:
   - port: 6379
+    targetPort: 6379
   selector:
     app: redis
 ---
@@ -28,17 +30,29 @@ spec:
         image: redis:alpine
         ports:
         - containerPort: 6379
-        resources: # Límits obligatoris (Nivell Intermediate)
+        resources:
           requests:
             memory: "64Mi"
             cpu: "100m"
           limits:
             memory: "128Mi"
             cpu: "250m"
+        livenessProbe:
+          tcpSocket:
+            port: 6379
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+              - redis-cli
+              - ping
+          initialDelaySeconds: 5
+          periodSeconds: 5
         volumeMounts:
         - name: redis-data
           mountPath: /data
-  volumeClaimTemplates: # Això és la persistència real (Nivell Advanced)
+  volumeClaimTemplates:
   - metadata:
       name: redis-data
     spec:
