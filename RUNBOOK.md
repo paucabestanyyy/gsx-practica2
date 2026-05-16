@@ -81,3 +81,19 @@ kubectl cp greendev-dev/redis-0:/data/dump.rdb ./backup-$(date +%Y%m%d).rdb
 kubectl cp ./backup-YYYYMMDD.rdb greendev-dev/redis-0:/data/dump.rdb
 kubectl delete pod redis-0 -n greendev-dev  # forçar restart per a llegir el dump
 ```
+
+## A. Instalacio de dependencies a la VM
+
+```bash
+./install-deps.sh
+```
+
+Instal.la Terraform i configura DNS de Docker (necessari per a accedir a registry.k8s.io).
+
+## B. Scripts d'entrevista oral
+
+| Script              | Que fa                                            |
+|---------------------|---------------------------------------------------|
+| `./test-all.sh`     | 10 tests automatics (validacio rapida)            |
+| `./demo.sh`         | Demo guiada amb 8 capitols (per entrevista oral)  |
+| `./redeploy-redis.sh` | Recrear nomes Redis si s'ha perdut              |

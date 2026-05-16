@@ -211,3 +211,91 @@ kubectl get events --field-selector reason=OOMKilling
 ```
 
 Si veus OOMKilled, augmentar `resources.limits.memory` al manifest.
+
+---
+
+## 11. Docker no pot accedir a registry.k8s.io
+
+**Simptoma:** A `minikube start`, error `Failing to connect to https://registry.k8s.io/`.
+
+**Diagnostic:**
+```bash
+docker run --rm busybox nslookup registry.k8s.io
+# Si no resol -> DNS de Docker mal configurat
+```
+
+**Solucio:**
+```bash
+sudo bash -c 'cat > /etc/docker/daemon.json << JSON
+{
+  "dns": ["8.8.8.8", "1.1.1.1"],
+  "dns-opts": ["ndots:0"]
+}
+JSON'
+sudo systemctl restart docker
+```
+
+## 12. Calico no s'inicialitza correctament
+
+**Simptoma:** Pods queden en `ContainerCreating` amb error
+`failed to set up sandbox container: plugin type="calico" failed (add): stat /var/lib/calico/nodename: no such file or directory`
+
+**Causa:** Quan Minikube va arrencar la primera vegada, el DNS de Docker estava trencat
+i els pods de Calico no van poder descarregar les seves imatges.
+
+**Solucio:** Reiniciar minikube despres d'arreglar el DNS de Docker:
+```bash
+minikube delete
+minikube start --cni=calico --memory=2048 --cpus=2
+```
+
+**Alternativa si la VM no te recursos per Calico (<3GB RAM):** Usar el CNI per defecte:
+```bash
+minikube start --memory=2048 --cpus=2 --kubernetes-version=v1.30.0
+```
+Les NetworkPolicies igualment es creen pero amb funcionalitat limitada.
+
+## 13. Minikube s'atura sol (out of memory / out of disk)
+
+**Simptoma:** `kubectl` retorna `connection refused` despres d'haver funcionat.
+
+**Diagnostic:**
+```bash
+docker ps -a | grep minikube       # Veure si el container esta aturat
+df -h /                            # Veure espai en disc
+free -h                            # Veure RAM
+```
+
+**Solucions:**
+- Reiniciar: `minikube start` (sense delete, conserva l'estat)
+- Si disc ple: `docker system prune -af --volumes` + revisar /home/<user> per fitxers grans
+- Si RAM baixa: crear swap (`sudo fallocate -l 2G /swapfile; sudo mkswap /swapfile; sudo swapon /swapfile`)
+
+## 14. Terraform timeout esperant rollout (pero els pods funcionen)
+
+**Simptoma:** `Error: StatefulSet greendev-dev/redis is not finished rolling out`
+pero `kubectl get pods` mostra `Running 1/1`.
+
+**Causa:** En VMs amb connexio lenta, descarregar les imatges triga mes de 10 min
+i Terraform fa timeout encara que el cluster acabi desplegant-ho be.
+
+**Solucio:** Sincronitzar Terraform amb la realitat:
+```bash
+cd terraform/
+terraform refresh -var-file=envs/dev.tfvars
+terraform output
+```
+
+## 15. Test seguretat W12 - "container not found"
+
+**Simptoma:** `error: Internal error occurred: unable to upgrade connection: container not found ("terminal")`
+
+**Causa:** Els pods `dev-hacker` i `prod-worker` encara estaven en `ContainerCreating`
+quan el script ha intentat executar `kubectl exec`.
+
+**Solucio:** Esperar a que tots els pods estiguin Running:
+```bash
+kubectl wait --for=condition=ready pods --all -n dev --timeout=120s
+kubectl wait --for=condition=ready pods --all -n prod --timeout=120s
+./week12/test-seguretat.sh
+```

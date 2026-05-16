@@ -22,7 +22,7 @@ minikube delete || true
 # Pas 2: Arrencada de Minikube amb Calico (per a NetworkPolicies)
 ###############################################################################
 echo -e "\n[2/6] 🚀 Arrencant Minikube amb Calico..."
-minikube start --cni=calico --memory=4096 --cpus=2
+minikube start --cni=calico --memory=2048 --cpus=2
 
 ###############################################################################
 # Pas 3: Aplicacio principal via Terraform (IaC)
