@@ -147,3 +147,21 @@ minikube start --cni=calico --memory=4096 --cpus=2
 ./week12/test-seguretat.sh   # Ha de retornar 2/2 PASSATS
 ```
 
+
+## Nota sobre validació de NetworkPolicies (W12)
+
+La pràctica defineix la NetworkPolicy `isolate-production` a `week12/02-network-policy.yaml`.
+Per a una **validació real** d'aquesta policy cal un CNI compatible amb NetworkPolicies
+(Calico o Cilium). El **CNI per defecte de Minikube** (`bridge`) no enforça policies.
+
+A la VM d'avaluació amb 4GB RAM hem optat pel CNI bridge per estabilitat (Calico requereix
+~600MB addicionals que sumats a Prometheus+Grafana+app no caben). El codi YAML és correcte
+i el script `week12/test-seguretat.sh` detecta honestament si el CNI actual enforça policies.
+
+**Per validar amb Calico** (cluster amb mes recursos):
+```bash
+minikube delete
+minikube start --cni=calico --memory=4096 --cpus=2
+./disaster-recovery.sh
+./week12/test-seguretat.sh   # Ha de retornar 2/2 PASSATS
+```
