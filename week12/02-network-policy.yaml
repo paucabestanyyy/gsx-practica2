@@ -4,11 +4,11 @@ metadata:
   name: isolate-production
   namespace: prod
 spec:
-  podSelector: {} # En buit vol dir: Aplica a TOTS els pods d'aquest namespace
+  podSelector: {}  # Aplica a TOTS els pods de prod
   policyTypes:
   - Ingress
   ingress:
   - from:
     - namespaceSelector:
         matchLabels:
-          name: prod # Nomes deixa passar si qui truca ve del namespace amb l'etiqueta 'prod'
+          kubernetes.io/metadata.name: prod  # Label automàtica posada per K8s

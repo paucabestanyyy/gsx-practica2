@@ -128,3 +128,22 @@ gsx-practica2/
 
 Per a l'entrevista oral (W14-15), ambdos membres del grup estem preparats per defensar
 totes les decisions arquitectoniques i fer demos en viu de cada component.
+
+## Nota sobre validació de NetworkPolicies (W12)
+
+La pràctica defineix la NetworkPolicy `isolate-production` a `week12/02-network-policy.yaml`.
+Per a una **validació real** d'aquesta policy cal un CNI compatible amb NetworkPolicies
+(Calico o Cilium). El **CNI per defecte de Minikube** (`bridge`) no enforça policies.
+
+A la VM d'avaluació amb 4GB RAM hem optat pel CNI bridge per estabilitat. El codi YAML
+és correcte i el script `week12/test-seguretat.sh` detecta honestament si el CNI actual
+enforça policies o no.
+
+**Per validar amb Calico** (en un cluster amb mes recursos):
+```bash
+minikube delete
+minikube start --cni=calico --memory=4096 --cpus=2
+./disaster-recovery.sh
+./week12/test-seguretat.sh   # Ha de retornar 2/2 PASSATS
+```
+
